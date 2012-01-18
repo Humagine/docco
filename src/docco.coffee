@@ -9,7 +9,7 @@
 #
 #     docco src/*.coffee
 #
-# ...will generate an HTML documentation page for each of the named source files, 
+# ...will generate an HTML documentation page for each of the named source files,
 # with a menu linking to the other pages, saving it into a `docs` folder.
 #
 # The [source for Docco](http://github.com/jashkenas/docco) is available on GitHub,
@@ -25,25 +25,25 @@
 #### Partners in Crime:
 #
 # * If **Node.js** doesn't run on your platform, or you'd prefer a more convenient
-# package, get [Ryan Tomayko](http://github.com/rtomayko)'s 
-# [Rocco](http://rtomayko.github.com/rocco/), the Ruby port that's available as a gem. 
-# 
+# package, get [Ryan Tomayko](http://github.com/rtomayko)'s
+# [Rocco](http://rtomayko.github.com/rocco/), the Ruby port that's available as a gem.
+#
 # * If you're writing shell scripts, try
 # [Shocco](http://rtomayko.github.com/shocco/), a port for the **POSIX shell**,
 # also by Mr. Tomayko.
-# 
-# * If Python's more your speed, take a look at 
-# [Nick Fitzgerald](http://github.com/fitzgen)'s [Pycco](http://fitzgen.github.com/pycco/). 
 #
-# * For **Clojure** fans, [Fogus](http://blog.fogus.me/)'s 
-# [Marginalia](http://fogus.me/fun/marginalia/) is a bit of a departure from 
+# * If Python's more your speed, take a look at
+# [Nick Fitzgerald](http://github.com/fitzgen)'s [Pycco](http://fitzgen.github.com/pycco/).
+#
+# * For **Clojure** fans, [Fogus](http://blog.fogus.me/)'s
+# [Marginalia](http://fogus.me/fun/marginalia/) is a bit of a departure from
 # "quick-and-dirty", but it'll get the job done.
 #
-# * **Lua** enthusiasts can get their fix with 
+# * **Lua** enthusiasts can get their fix with
 # [Robert Gieseke](https://github.com/rgieseke)'s [Locco](http://rgieseke.github.com/locco/).
-# 
+#
 # * And if you happen to be a **.NET**
-# aficionado, check out [Don Wilson](https://github.com/dontangg)'s 
+# aficionado, check out [Don Wilson](https://github.com/dontangg)'s
 # [Nocco](http://dontangg.github.com/nocco/).
 
 #### Main Documentation Generation Functions
@@ -123,7 +123,7 @@ generate_html = (source, context, sections) ->
   title = path.basename source
   dest  = destination source, context
   html  = docco_template {
-    title: title, file_path: source, sections: sections, context: context, path: path, relative_base: relative_base
+    title: title, file_path: source, sections: sections, context: context, path: path, relative_base: relative_base, destination: destination
   }
 
   # Generate the file's base dir as required
@@ -189,16 +189,19 @@ get_language = (source) -> languages[path.extname(source)]
 
 # Compute the path of a source file relative to the docs folder
 relative_base = (filepath, context) ->
-  result = if context.relative_root then path.dirname(filepath)[context.relative_root.length..] + '/' else ''
-
+  result = path.relative(context.relative_root, filepath)
   if result == '/' then '' else result
+
+  # result = if context.relative_root then path.dirname(filepath)[context.relative_root.length..] + '/' else ''
+  # if result == '/' then '' else result
+
+
 
 # Compute the destination HTML path for an input source file path. If the source
 # is `lib/example.coffee`, the HTML will be at `docs/example.html`.
 destination = (filepath, context) ->
   base_path = relative_base filepath, context
-
-  'docs/' + base_path + path.basename(filepath, path.extname(filepath)) + '.html'
+  'docs/' + base_path.replace(path.basename(base_path), '') + path.basename(filepath, path.extname(filepath)) + '.html'
 
 # Ensure that the destination directory exists.
 ensure_directory = (dir, callback) ->
@@ -255,8 +258,9 @@ parse_args = (callback) ->
   exec "find #{relative_root} -type f", (err, stdout) ->
     throw err if err
 
-    # Don't include hidden files, either
-    sources = stdout.split("\n").filter (file) -> file != '' and path.basename(file)[0] != '.'
+    # Don't include hidden files, and files we don’t have comment delimiter for
+    sources = stdout.split("\n").filter (file) ->
+      file != '' and path.basename(file)[0] != '.' and languages[path.extname(file)]
 
     console.log "docco: Recursively generating docs underneath #{relative_root}/"
 
